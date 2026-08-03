@@ -1,0 +1,82 @@
+// lib/providers/poultry_provider.dart
+import 'package:flutter/material.dart';
+import '../db/DatabaseHelper.dart';
+import '../models/bird.dart';
+import '../models/feed_entry.dart';
+import '../models/labour.dart';
+import '../models/income.dart';
+import '../models/expense.dart';
+
+class PoultryProvider extends ChangeNotifier {
+  List<Bird> birds = [];
+  List<FeedEntry> feeds = [];
+  List<LabourEntry> labours = [];
+  List<Income> incomes = [];
+  List<Expense> expenses = [];
+
+  Future<void> loadAll({required int ownerUserId}) async {
+    final bRows = await DatabaseHelper.instance.query('birds', where: 'owner_user_id = ?', whereArgs: [ownerUserId], orderBy: 'id DESC');
+    birds = bRows.map((r) => Bird.fromMap(r)).toList();
+
+    final fRows = await DatabaseHelper.instance.query('feed_entries', where: 'owner_user_id = ?', whereArgs: [ownerUserId], orderBy: 'date DESC');
+    feeds = fRows.map((r) => FeedEntry.fromMap(r)).toList();
+
+    final lRows = await DatabaseHelper.instance.query('labour', where: 'owner_user_id = ?', whereArgs: [ownerUserId], orderBy: 'date DESC');
+    labours = lRows.map((r) => LabourEntry.fromMap(r)).toList();
+
+    final iRows = await DatabaseHelper.instance.query('income', where: 'owner_user_id = ?', whereArgs: [ownerUserId], orderBy: 'date DESC');
+    incomes = iRows.map((r) => Income.fromMap(r)).toList();
+
+    final eRows = await DatabaseHelper.instance.query('expenses', where: 'owner_user_id = ?', whereArgs: [ownerUserId], orderBy: 'date DESC');
+    expenses = eRows.map((r) => Expense.fromMap(r)).toList();
+
+    notifyListeners();
+  }
+
+  Future<void> addBird(Bird b) async {
+    final id = await DatabaseHelper.instance.insert('birds', b.toMap());
+    birds.insert(0, b.copyWithId(id));
+    notifyListeners();
+  }
+
+  Future<void> addFeed(FeedEntry f) async {
+    final id = await DatabaseHelper.instance.insert('feed_entries', f.toMap());
+    feeds.insert(0, f.copyWithId(id));
+    notifyListeners();
+  }
+
+  Future<void> addLabour(LabourEntry l) async {
+    final id = await DatabaseHelper.instance.insert('labour', l.toMap());
+    labours.insert(0, l.copyWithId(id));
+    notifyListeners();
+  }
+
+  Future<void> addIncome(Income i) async {
+    final id = await DatabaseHelper.instance.insert('income', i.toMap());
+    incomes.insert(0, i.copyWithId(id));
+    notifyListeners();
+  }
+
+  Future<void> addExpense(Expense e) async {
+    final id = await DatabaseHelper.instance.insert('expenses', e.toMap());
+    expenses.insert(0, e.copyWithId(id));
+    notifyListeners();
+  }
+}
+
+// Extension helpers to copy with id after DB insert
+extension BirdCopy on Bird {
+  Bird copyWithId(int id) => Bird(id: id, tag: tag, breed: breed, dateAdded: dateAdded, notes: notes, ownerUserId: ownerUserId);
+}
+extension FeedCopy on FeedEntry {
+  FeedEntry copyWithId(int id) => FeedEntry(id: id, birdId: birdId, date: date, feedType: feedType, quantity: quantity, notes: notes, ownerUserId: ownerUserId);
+}
+extension LabourCopy on LabourEntry {
+  LabourEntry copyWithId(int id) => LabourEntry(id: id, date: date, description: description, hours: hours, cost: cost, ownerUserId: ownerUserId);
+}
+extension IncomeCopy on Income {
+  Income copyWithId(int id) => Income(id: id, date: date, source: source, amount: amount, notes: notes, ownerUserId: ownerUserId);
+}
+extension ExpenseCopy on Expense {
+  Expense copyWithId(int id) => Expense(id: id, date: date, description: description, amount: amount, notes: notes, ownerUserId: ownerUserId);
+}
