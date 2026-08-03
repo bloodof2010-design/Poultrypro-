@@ -1,0 +1,53 @@
+// lib/providers/auth_provider.dart
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../db/DatabaseHelper.dart';
+import '../models/user.dart';
+
+class AuthProvider extends ChangeNotifier {
+  UserModel? _user;
+  bool get isLoggedIn => _user != null;
+  int? get userId => _user?.id;
+
+  AuthProvider({int? initialUserId}) {
+    if (initialUserId != null) _loadUser(initialUserId);
+  }
+
+  Future<void> _loadUser(int id) async {
+    final rows = await DatabaseHelper.instance.query('users', where: 'id = ?', whereArgs: [id]);
+    if (rows.isNotEmpty) {
+      _user = UserModel.fromMap(rows.first);
+      notifyListeners();
+    }
+  }
+
+  Future<String?> register(String username, String password) async {
+    try {
+      final id = await DatabaseHelper.instance.insert('users', {'username': username, 'password': password});
+      _user = UserModel(id: id, username: username, password: password);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('user_id', id);
+      notifyListeners();
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  Future<String?> login(String username, String password) async {
+    final rows = await DatabaseHelper.instance.query('users', where: 'username = ? AND password = ?', whereArgs: [username, password]);
+    if (rows.isEmpty) return 'Invalid credentials';
+    _user = UserModel.fromMap(rows.first);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('user_id', _user!.id!);
+    notifyListeners();
+    return null;
+  }
+
+  Future<void> logout() async {
+    _user = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('user_id');
+    notifyListeners();
+  }
+}
