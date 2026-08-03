@@ -48,5 +48,11 @@ jobs:
       - name: Analyze
         run: flutter analyze
 
-      - name: Run tests
-        run: flutter test --no-sound-null-safety
+      - name: Run tests (if any)
+        run: |
+          if [ -d "test" ]; then
+            echo "Running tests..."
+            flutter test
+          else
+            echo "No test directory found, skipping tests."
+          fi
