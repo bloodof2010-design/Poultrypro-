@@ -1,0 +1,58 @@
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class AuthProvider extends ChangeNotifier {
+  bool isLoading = true;
+  bool isAuthenticated = false;
+  String? email;
+
+  static const _keyLoggedIn = 'poultrypro_logged_in';
+  static const _keyEmail = 'poultrypro_email';
+
+  AuthProvider() {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    isAuthenticated = prefs.getBool(_keyLoggedIn) ?? false;
+    email = prefs.getString(_keyEmail);
+    isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> login(String emailValue, String password) async {
+    // Mock login: accept any non-empty credentials
+    if (emailValue.isEmpty || password.isEmpty) {
+      throw Exception('Email and password are required');
+    }
+    isLoading = true;
+    notifyListeners();
+
+    // small delay to simulate network
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyLoggedIn, true);
+    await prefs.setString(_keyEmail, emailValue);
+
+    email = emailValue;
+    isAuthenticated = true;
+    isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> logout() async {
+    isLoading = true;
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyLoggedIn);
+    await prefs.remove(_keyEmail);
+
+    email = null;
+    isAuthenticated = false;
+    isLoading = false;
+    notifyListeners();
+  }
+}
