@@ -8,6 +8,8 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    env:
+      FLUTTER_ROOT: /opt/hostedtoolcache/flutter/stable-3.22.0-x64/flutter
 
     steps:
       - name: Checkout
@@ -46,22 +48,33 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: Ensure Android platform files exist (generate if missing)
+        run: |
+          if [ ! -d "android" ]; then
+            echo "android/ not found — generating Flutter platform files (temporary on runner)"
+            flutter create -t app .
+          else
+            echo "android/ exists in repo"
+          fi
+
       - name: Get dependencies
         run: flutter pub get
 
       - name: Build release APK
         run: flutter build apk --release --no-tree-shake-icons
 
-      - name: Show built APKs
+      - name: Show built APKs (debug)
         run: |
           echo "Listing build/app/outputs/flutter-apk:"
           ls -la build/app/outputs/flutter-apk || true
           echo
-          echo "Finding any .apk under build/:"
+          echo "Find any .apk under build/:"
           find build -type f -name "*.apk" -print || true
 
       - name: Upload APK artifact(s)
         uses: actions/upload-artifact@v4
         with:
           name: poultrypro-release-apk
-          path: build/app/outputs/flutter-apk/*.apk
+          path: |
+            build/app/outputs/flutter-apk/*.apk
+            build/**/outputs/**/*.apk
