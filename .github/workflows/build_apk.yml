@@ -1,4 +1,4 @@
-    name: Build Android APK
+name: Build Android APK
 
 on:
   push:
@@ -44,7 +44,7 @@ jobs:
             ~/.gradle
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/android/**/gradle-wrapper.properties') }}
           restore-keys: |
-            ${{ runner.os }}-grad-
+            ${{ runner.os }}-gradle-
 
       - name: Get dependencies
         run: flutter pub get
@@ -52,8 +52,16 @@ jobs:
       - name: Build release APK
         run: flutter build apk --release --no-tree-shake-icons
 
-      - name: Upload APK artifact
+      - name: Show built APKs
+        run: |
+          echo "Listing build/app/outputs/flutter-apk:"
+          ls -la build/app/outputs/flutter-apk || true
+          echo
+          echo "Finding any .apk under build/:"
+          find build -type f -name "*.apk" -print || true
+
+      - name: Upload APK artifact(s)
         uses: actions/upload-artifact@v4
         with:
           name: poultrypro-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk      
+          path: build/app/outputs/flutter-apk/*.apk
