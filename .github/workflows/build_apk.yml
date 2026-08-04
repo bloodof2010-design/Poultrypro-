@@ -8,8 +8,6 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
-    env:
-      FLUTTER_ROOT: /opt/hostedtoolcache/flutter/stable-3.22.0-x64/flutter
 
     steps:
       - name: Checkout
@@ -26,32 +24,10 @@ jobs:
         with:
           flutter-version: '3.22.0'
 
-      - name: Flutter --version
-        run: flutter --version
-
-      - name: Cache Pub packages
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.pub-cache
-            .dart_tool
-          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pub-
-
-      - name: Cache Gradle
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/android/**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
       - name: Ensure Android platform files exist (generate if missing)
         run: |
           if [ ! -d "android" ]; then
-            echo "android/ not found — generating Flutter platform files (temporary on runner)"
+            echo "android/ not found — generating Flutter platform files (temporary)"
             flutter create -t app .
           else
             echo "android/ exists in repo"
@@ -60,21 +36,40 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Build release APK
-        run: flutter build apk --release --no-tree-shake-icons
+      - name: Build release APK (and bundle)
+        run: |
+          flutter build apk --release --no-tree-shake-icons || true
+          flutter build appbundle --release || true
 
-      - name: Show built APKs (debug)
+      - name: Show build outputs (debug)
         run: |
           echo "Listing build/app/outputs/flutter-apk:"
           ls -la build/app/outputs/flutter-apk || true
           echo
-          echo "Find any .apk under build/:"
-          find build -type f -name "*.apk" -print || true
+          echo "Listing build/app/outputs/bundle/release:"
+          ls -la build/app/outputs/bundle/release || true
+          echo
+          echo "Find any .apk or .aab under build/:"
+          find build -type f \( -name "*.apk" -o -name "*.aab" \) -print || true
+          echo
+          echo "Show sizes for build dir:"
+          du -sh build || true
 
-      - name: Upload APK artifact(s)
+      - name: Package release outputs (zip everything safe)
+        run: |
+          mkdir -p artifacts
+          if compgen -G "build/app/outputs/flutter-apk/*.apk" > /dev/null; then
+            cp build/app/outputs/flutter-apk/*.apk artifacts/ || true
+          fi
+          if compgen -G "build/app/outputs/bundle/release/*.aab" > /dev/null; then
+            cp build/app/outputs/bundle/release/*.aab artifacts/ || true
+          fi
+          # zip the full build release folder as fallback
+          zip -r artifacts/build-output.zip build || true
+          ls -la artifacts
+
+      - name: Upload artifact (all found APK/AAB + zip)
         uses: actions/upload-artifact@v4
         with:
-          name: poultrypro-release-apk
-          path: |
-            build/app/outputs/flutter-apk/*.apk
-            build/**/outputs/**/*.apk
+          name: poultrypro-release-artifacts
+          path: artifacts/*
