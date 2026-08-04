@@ -1,55 +1,48 @@
-// lib/main.dart
-// Entry point for PoultryPro - initializes DB and user session, registers provider and routes.
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'providers/user_provider.dart';
-import 'db/DatabaseHelper.dart';
+import 'providers/auth_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/dashboard_screen.dart';
-import 'screens/add_poultry_screen.dart';
 
-Future<void> main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize the local database
-  await DatabaseHelper.instance.init();
-
-  // Prepare UserProvider and load session from SharedPreferences
-  final userProvider = UserProvider();
-  await userProvider.loadFromPrefs();
-
-  // Provide userProvider to the app
-  runApp(
-    ChangeNotifierProvider<UserProvider>.value(
-      value: userProvider,
-      child: const MyApp(),
-    ),
-  );
+  runApp(const PoultryProApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class PoultryProApp extends StatelessWidget {
+  const PoultryProApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<UserProvider>(
-      builder: (context, userProv, _) {
-        final initialRoute = userProv.isLoggedIn ? DashboardScreen.routeName : LoginScreen.routeName;
-        return MaterialApp(
-          title: 'PoultryPro',
-          theme: ThemeData(
-            primarySwatch: Colors.green,
-            useMaterial3: false,
-          ),
-          initialRoute: initialRoute,
-          routes: {
-            LoginScreen.routeName: (_) => const LoginScreen(),
-            DashboardScreen.routeName: (_) => const DashboardScreen(),
-            AddPoultryScreen.routeName: (_) => const AddPoultryScreen(),
-          },
-        );
-      },
+    return ChangeNotifierProvider(
+      create: (_) => AuthProvider(),
+      child: MaterialApp(
+        title: 'PoultryPro',
+        theme: ThemeData(primarySwatch: Colors.teal),
+        routes: {
+          LoginScreen.routeName: (_) => const LoginScreen(),
+          DashboardScreen.routeName: (_) => const DashboardScreen(),
+        },
+        home: const EntryDecider(),
+      ),
     );
+  }
+}
+
+class EntryDecider extends StatelessWidget {
+  const EntryDecider({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = Provider.of<AuthProvider>(context);
+    if (auth.isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (!auth.isAuthenticated) {
+      return const LoginScreen();
+    }
+    return const DashboardScreen();
   }
 }
