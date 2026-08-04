@@ -1,6 +1,0 @@
-- name: Show repo tree
-  run: |
-    echo "PWD: $(pwd)"
-    ls -la
-    echo "Recursive tree:"
-    ls -R
