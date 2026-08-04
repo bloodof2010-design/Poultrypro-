@@ -1,4 +1,4 @@
-name: Build Android APK
+    name: Build Android APK
 
 on:
   push:
@@ -44,7 +44,7 @@ jobs:
             ~/.gradle
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/android/**/gradle-wrapper.properties') }}
           restore-keys: |
-            ${{ runner.os }}-gradle-
+            ${{ runner.os }}-grad-
 
       - name: Get dependencies
         run: flutter pub get
@@ -56,4 +56,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: poultrypro-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: build/app/outputs/flutter-apk/app-release.apk      
