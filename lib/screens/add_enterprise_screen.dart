@@ -1,6 +1,5 @@
 // name=lib/screens/add_enterprise_screen.dart
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // built-in; no pubspec change required
 import '../models/enterprise.dart';
 import '../services/enterprise_storage.dart';
 
@@ -69,7 +68,8 @@ class _AddEnterpriseScreenState extends State<AddEnterpriseScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final DateFormat df = DateFormat.yMMMd();
+    // use a simple date string (no external package)
+    final createdAtText = DateTime.now().toLocal().toString().split(' ').first;
     return Scaffold(
       appBar: AppBar(title: const Text('Add Enterprise')),
       body: Padding(
@@ -105,10 +105,12 @@ class _AddEnterpriseScreenState extends State<AddEnterpriseScreen> {
               child: _saving ? const CircularProgressIndicator() : const Text('Save'),
             ),
             const SizedBox(height: 12),
-            Text('Created: ${df.format(DateTime.now())}', style: Theme.of(context).textTheme.bodySmall),
+            Text('Created: $createdAtText', style: Theme.of(context).textTheme.bodySmall),
           ],
         ),
       ),
     );
   }
 }
+        
+          
