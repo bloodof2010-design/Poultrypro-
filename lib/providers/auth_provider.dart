@@ -22,14 +22,12 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> login(String emailValue, String password) async {
-    // Mock login: accept any non-empty credentials
     if (emailValue.isEmpty || password.isEmpty) {
       throw Exception('Email and password are required');
     }
     isLoading = true;
     notifyListeners();
 
-    // small delay to simulate network
     await Future.delayed(const Duration(milliseconds: 500));
 
     final prefs = await SharedPreferences.getInstance();
