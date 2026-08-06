@@ -1,8 +1,8 @@
-// name=lib/screens/enterprise_detail_screen.dart
 import 'package:flutter/material.dart';
 import '../models/enterprise.dart';
-import '../services/enterprise_storage.dart';
-import 'add_enterprise_screen.dart';
+import '../models/inventory_item.dart';
+import '../services/storage_service.dart';
+import 'add_inventory_screen.dart';
 
 class EnterpriseDetailScreen extends StatefulWidget {
   final String enterpriseId;
@@ -14,6 +14,7 @@ class EnterpriseDetailScreen extends StatefulWidget {
 
 class _EnterpriseDetailScreenState extends State<EnterpriseDetailScreen> {
   Enterprise? _ent;
+  List<InventoryItem> _items = [];
   bool _loading = true;
 
   @override
@@ -26,11 +27,24 @@ class _EnterpriseDetailScreenState extends State<EnterpriseDetailScreen> {
     setState(() {
       _loading = true;
     });
-    final e = await EnterpriseStorage.getById(widget.enterpriseId);
+    final e = await StorageService.getEnterpriseById(widget.enterpriseId);
+    final items = await StorageService.getInventoryForEnterprise(widget.enterpriseId);
     setState(() {
       _ent = e;
+      _items = items;
       _loading = false;
     });
+  }
+
+  Future<void> _onAddInventory() async {
+    final res = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => AddInventoryScreen(enterpriseId: widget.enterpriseId)),
+    );
+    if (res == true) {
+      await _load();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Inventory item added')));
+    }
   }
 
   @override
@@ -60,27 +74,45 @@ class _EnterpriseDetailScreenState extends State<EnterpriseDetailScreen> {
                         Text(_ent!.notes!),
                         const SizedBox(height: 12),
                       ],
-                      const SizedBox(height: 18),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          // placeholder for adding bird/animal
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Add Bird/Animal — not implemented')));
-                        },
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add Bird/Animal'),
-                      ),
+                      const SizedBox(height: 12),
+                      const Text('Inventory', style: TextStyle(fontWeight: FontWeight.bold)),
                       const SizedBox(height: 8),
-                      OutlinedButton.icon(
-                        onPressed: () {
-                          // placeholder for viewing records
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('View Records — not implemented')));
-                        },
-                        icon: const Icon(Icons.list),
-                        label: const Text('View Records'),
-                      ),
+                      Expanded(
+                        child: _items.isEmpty
+                            ? const Center(child: Text('No inventory items yet.'))
+                            : ListView.separated(
+                                itemCount: _items.length,
+                                separatorBuilder: (_, __) => const Divider(),
+                                itemBuilder: (ctx, i) {
+                                  final it = _items[i];
+                                  return ListTile(
+                                    title: Text(it.name),
+                                    subtitle: Text('${it.quantity} ${inventoryUnitToString(it.unit)} • ${it.dateAdded.toLocal().toString().split(' ').first}'),
+                                    isThreeLine: it.notes != null,
+                                    trailing: Text(it.quantity.toString()),
+                                    onTap: () {
+                                      if (it.notes != null && it.notes!.isNotEmpty) {
+                                        showDialog(
+                                            context: context,
+                                            builder: (ctx) => AlertDialog(
+                                                  title: Text(it.name),
+                                                  content: Text(it.notes!),
+                                                  actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+                                                ));
+                                      }
+                                    },
+                                  );
+                                },
+                              ),
+                      )
                     ],
                   ),
                 ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _onAddInventory,
+        child: const Icon(Icons.add),
+        tooltip: 'Add Inventory Item',
+      ),
     );
   }
 }
